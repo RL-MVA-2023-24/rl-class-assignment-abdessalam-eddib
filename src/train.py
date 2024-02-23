@@ -6,6 +6,7 @@ import pickle as pkl
 import numpy as np
 
 import os
+from tqdm import tqdm
 
 env = TimeLimit(
     env=HIVPatient(domain_randomization=False, logscale=False), max_episode_steps=200
@@ -22,7 +23,7 @@ class ProjectAgent:
     def __init__(self):
         self.path = "src/model"
         self.gamma = 0.98
-        self.Q = ExtraTreesRegressor()
+        self.Q = RandomForestRegressor()
 
         
 
@@ -40,15 +41,13 @@ class ProjectAgent:
         R = []
         S2 = []
         D = []
-        for _ in range(horizon):
-            if exp == 0:
+        for _ in tqdm(range(horizon)):
+            epsilon = 1 / (2 ** exp)
+            p = np.random.rand()
+            if p < epsilon:
                 a = env.action_space.sample()
             else:
-                p = np.random.rand()
-                if p < 0.15:
-                    a = env.action_space.sample()
-                else:
-                    a = self.act(s)
+                a = self.act(s)
 
             s2, r, done, trunc, _ = env.step(a)
             S.append(s)
@@ -70,10 +69,11 @@ class ProjectAgent:
         self.state_dim = env.observation_space.shape[0]
         self.n_action = env.action_space.n
         for exp in range(n_exp):
+            print(f"\n ################ EXPERIMENT {exp + 1}/{n_exp} ################ \n")
             S, A, R, S2, D = self.collect_samples(env, exp=exp, horizon=horizon)
             nb_samples = S.shape[0]
             SA = np.append(S,A,axis=1)
-            for iter in range(n_iterations):
+            for iter in tqdm(range(n_iterations)):
                 if iter==0:
                     value=R.copy()
                 else:
@@ -85,13 +85,13 @@ class ProjectAgent:
                     max_Q2 = np.max(Q2,axis=1)
                     value = R + self.gamma*(1-D)*max_Q2
 
-                Q = ExtraTreesRegressor()
+                Q = RandomForestRegressor()
                 Q.fit(SA,value)
                 self.Q = Q
     
 
 
-    def save(self, path):
+    def save(self, path="model"):
         payload = {}
         payload["Q"] = self.Q
         payload["nb_action"] = self.n_action
@@ -105,4 +105,3 @@ class ProjectAgent:
             payload = pkl.load(f)
             self.Q = payload["Q"]
             self.n_action = payload["nb_action"]
-
