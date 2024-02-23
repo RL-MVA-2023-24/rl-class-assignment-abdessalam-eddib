@@ -2,11 +2,6 @@ from gymnasium.wrappers import TimeLimit
 from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
 from env_hiv import HIVPatient
 
-import time
-import torch
-import torch.nn as nn
-from torch.optim import AdamW
-import torch.nn.functional as F
 import pickle as pkl
 import numpy as np
 
@@ -23,7 +18,7 @@ env = TimeLimit(
 class ProjectAgent:
 
     def __init__(self):
-        self.path = "model"
+        self.path = "./model"
         self.gamma = 0.98
         self.Q = ExtraTreesRegressor()
 
@@ -69,7 +64,7 @@ class ProjectAgent:
         S2= np.array(S2)
         D = np.array(D)
         return S, A, R, S2, D
-    def train(self, env, n_iterations, n_exp, horizon=30 * 200):
+    def train(self, env, n_iterations, n_exp, horizon= 30 * 200):
         self.state_dim = env.observation_space.shape[0]
         self.n_action = env.action_space.n
         for exp in range(n_exp):
