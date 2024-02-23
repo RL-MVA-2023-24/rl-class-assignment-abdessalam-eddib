@@ -5,6 +5,8 @@ from env_hiv import HIVPatient
 import pickle as pkl
 import numpy as np
 
+import os
+
 env = TimeLimit(
     env=HIVPatient(domain_randomization=False, logscale=False), max_episode_steps=200
 )  # The time wrapper limits the number of steps in an episode at 200.
@@ -98,7 +100,8 @@ class ProjectAgent:
         
 
     def load(self):
-        with open(self.path, "rb") as f:
+        path = os.path.join(os.getcwd(), self.path)
+        with open(path, "rb") as f:
             payload = pkl.load(f)
             self.Q = payload["Q"]
             self.n_action = payload["nb_action"]
