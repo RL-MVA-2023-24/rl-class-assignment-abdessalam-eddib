@@ -20,7 +20,7 @@ env = TimeLimit(
 class ProjectAgent:
 
     def __init__(self):
-        self.path = "./model"
+        self.path = "src/model"
         self.gamma = 0.98
         self.Q = ExtraTreesRegressor()
 
@@ -95,12 +95,12 @@ class ProjectAgent:
         payload = {}
         payload["Q"] = self.Q
         payload["nb_action"] = self.n_action
-        with open(self.path, "wb") as f:
+        with open("model", "wb") as f:
             pkl.dump(payload, f)
         
 
     def load(self):
-        path = os.path.join(os.getcwd(), self.path)
+        path = os.path.join(os.getcwd(), os.path.abspath(self.path))
         with open(path, "rb") as f:
             payload = pkl.load(f)
             self.Q = payload["Q"]
