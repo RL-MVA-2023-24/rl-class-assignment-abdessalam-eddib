@@ -6,7 +6,6 @@ import pickle as pkl
 import numpy as np
 
 import os
-from tqdm import tqdm
 
 env = TimeLimit(
     env=HIVPatient(domain_randomization=False, logscale=False), max_episode_steps=200
@@ -41,7 +40,7 @@ class ProjectAgent:
         R = []
         S2 = []
         D = []
-        for _ in tqdm(range(horizon)):
+        for _ in range(horizon):
             epsilon = 1 / (2 ** exp)
             p = np.random.rand()
             if p < epsilon:
@@ -73,7 +72,7 @@ class ProjectAgent:
             S, A, R, S2, D = self.collect_samples(env, exp=exp, horizon=horizon)
             nb_samples = S.shape[0]
             SA = np.append(S,A,axis=1)
-            for iter in tqdm(range(n_iterations)):
+            for iter in range(n_iterations):
                 if iter==0:
                     value=R.copy()
                 else:
