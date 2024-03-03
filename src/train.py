@@ -23,8 +23,8 @@ env = TimeLimit(
 class ProjectAgent:
 
     def __init__(self):
-        self.model_path = '../models/model.pt'
-        self.payload_path = '../models/payload.binary'
+        self.model_path = '/models/model.pt'
+        self.payload_path = '/models/payload.binary'
         self.device = 'cpu'
 
     def act(self, observation, use_random = False):
