@@ -7,6 +7,7 @@ from copy import deepcopy
 import numpy as np
 import pickle as pkl
 import torch
+import os
 
 env = TimeLimit(
     env=HIVPatient(domain_randomization=False, logscale=False), max_episode_steps=200
@@ -39,7 +40,7 @@ class ProjectAgent:
 
     def load(self):
         # loading payload containing infos abt the network architecture
-        with open(self.payload_path, 'rb') as file:
+        with open(os.path.join(os.getcwd(),self.payload_path), 'rb') as file:
             payload = pkl.load(file)
             self.n_states = payload["n_states"]
             self.n_actions = payload["n_actions"]
@@ -47,7 +48,7 @@ class ProjectAgent:
 
         # instantiating the newtork and its state dict
         self.network = DDDQNNet(self.n_states, self.n_hidden, self.n_actions)
-        self.network.load_state_dict(torch.load(self.model_path))
+        self.network.load_state_dict(torch.load(os.path.join(os.getcwd(),self.model_path)))
 
         # ensuring it's on cpu
         self.network.to(self.device)
