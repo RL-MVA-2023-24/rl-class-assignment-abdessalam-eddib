@@ -1,4 +1,4 @@
-from memory import ReplayBuffer
+from memory import ReplayBuffer, fill_buffer
 from gymnasium.wrappers import TimeLimit
 from env_hiv import HIVPatient
 from evaluate import evaluate_HIV
@@ -24,7 +24,7 @@ env = TimeLimit(
 class ProjectAgent:
 
     def __init__(self):
-        self.model_path = './models/model.pt'
+        self.model_path = './models/model'
         self.payload_path = './models/payload.binary'
         self.device = 'cpu'
 
@@ -32,10 +32,16 @@ class ProjectAgent:
         if use_random:
             return np.random.choice(range(self.n_actions))
         else:
+            Q_values = []
             with torch.no_grad():
-                Q = self.network(torch.Tensor(observation).unsqueeze(0).to(self.device))
-                return torch.argmax(Q).item()
-    
+                for i in range(6):
+                  Q = self.networks[i](torch.Tensor(observation).unsqueeze(0).to(self.device))
+                  Q_values.append(Q.squeeze().detach().numpy())
+            weights = np.concatenate([np.full(2, 1.0), np.full(1, 1.6), np.full(1, 1.4), np.full(2, 1.0)]).reshape(6,1)
+            Q_values = np.array(Q_values) * weights
+            Q_values = Q_values.mean(axis=0)
+            return np.argmax(Q_values)
+            
     def save(self, path):
         pass
 
@@ -47,12 +53,13 @@ class ProjectAgent:
             self.n_actions = payload["n_actions"]
             self.n_hidden = payload["n_hidden"]
 
-        # instantiating the newtork and its state dict
-        self.network = DDDQNNet(self.n_states, self.n_hidden, self.n_actions)
-        self.network.load_state_dict(torch.load(os.path.join(os.getcwd(),self.model_path), map_location=torch.device('cpu')))
-
-        # ensuring it's on cpu
-        self.network.to(self.device)
+        # instantiating the newtorks and their state dict
+        self.networks = []
+        for i in range(1, 9):
+          network = DDDQNNet(self.n_states, self.n_hidden, self.n_actions)
+          network.load_state_dict(torch.load(os.path.join(os.getcwd(),self.model_path + f'{i}.pt'), map_location=torch.device('cpu')))
+          network.to(self.device)
+          self.networks.append(network)
 
 class DDDQNAgent:
     def __init__(self, env, config):
@@ -267,24 +274,27 @@ class DDDQNAgent:
 
 # setting up configuration
 config = {
-    'hidden_size' : 128,
+    'hidden_size' : 256,
     'batch_size'  : 2048 ,
     'gradient_steps' : 20,
-    'learning_rate' : 5e-3,
+    'learning_rate' : 5e-4,
     'update_target_freq' : 100,
     'update_target_tau' : 0.005,
     'update_target_strategy' : 'replace',
-    'epsilon_min' : 0.1,
+    'epsilon_min' : 0.05,
     'epsilon_max' : 1,
-    'epsilon_delay_decay' : 2000,
+    'epsilon_delay_decay' : 4000,
     'epsilon_decay_period'  : 10000,
     'gamma' : 0.99,
     'buffer_size' : int(10e20),
     'monitoring_nb_trials': 0,
 }
 
-# training the DDDQN Agent
-# trained_agent = DDDQNAgent(env, config)
-# trained_agent.train(max_episode=500)
+# fill the buffer
+# print("Filling buffer ...")
+# fill_buffer(env, trained_agent, 8000)
+# print("Finished ...")
+
+# trained_agent.train(max_episode=1000)
 
 
