@@ -1,13 +1,13 @@
 from memory import ReplayBuffer
 from gymnasium.wrappers import TimeLimit
 from env_hiv import HIVPatient
+from evaluate import evaluate_HIV
 from nn_models import DDDQNNet
 from copy import deepcopy
 
 import numpy as np
 import pickle as pkl
 import torch
-import os
 
 env = TimeLimit(
     env=HIVPatient(domain_randomization=False, logscale=False), max_episode_steps=200
@@ -48,7 +48,7 @@ class ProjectAgent:
 
         # instantiating the newtork and its state dict
         self.network = DDDQNNet(self.n_states, self.n_hidden, self.n_actions)
-        self.network.load_state_dict(torch.load(os.path.join(os.getcwd(),self.model_path)))
+        self.network.load_state_dict(torch.load(os.path.join(os.getcwd(),self.model_path), map_location=torch.device('cpu')))
 
         # ensuring it's on cpu
         self.network.to(self.device)
@@ -70,7 +70,7 @@ class DDDQNAgent:
         # defining backpropagations necessary thingies
         self.learning_rate = config["learning_rate"]
         self.loss_fn = torch.nn.SmoothL1Loss(reduction='mean')
-        self.optimizer = torch.optim.AdamW(self.network.parameters(), lr=self.learning_rate, weight_decay=0.01)
+        self.optimizer = torch.optim.Adam(self.network.parameters(), lr=self.learning_rate)
         self.nb_gradient_steps = config["gradient_steps"]
         self.batch_size = config["batch_size"]
 
@@ -168,7 +168,8 @@ class DDDQNAgent:
             # Compute target Q-values using the target model
             with torch.no_grad():
                 next_max_q_values = self.target_network(next_states).max(1)[0]
-                target_q_values = rewards + (1 - dones) * self.gamma * next_max_q_values
+
+            target_q_values = torch.addcmul(rewards, 1 - dones, next_max_q_values, value=self.gamma)
 
             # Compute current Q-values for the sampled actions
             current_q_values = self.network(states).gather(1, actions.long().unsqueeze(1))
@@ -197,12 +198,7 @@ class DDDQNAgent:
         while episode < max_episode:
             # Update epsilon
             if step > self.epsilon_delay:
-                if 50 < episode and episode < 80:
-                    epsilon = 0.1
-                elif episode > 80:
-                    epsilon = 0.05
-                else:
-                    epsilon = max(self.epsilon_min, epsilon - self.epsilon_step)
+                epsilon = max(self.epsilon_min, epsilon - self.epsilon_step)
 
             # Select epsilon-greedy action
             if np.random.rand() < epsilon:
@@ -235,14 +231,18 @@ class DDDQNAgent:
             step += 1
 
             if done or trunc:
+                if episode > 0:
+                        if episode_cum_reward > best_reward:
+                            best_reward = episode_cum_reward
+                            self.save()
+                else:
+                        best_reward = episode_cum_reward
+                        self.save()
                 episode += 1
 
                 # Monitoring
                 if self.monitoring_nb_trials > 0:
                     MC_discounted_reward, MC_total_reward = self.MC_eval(self.monitoring_nb_trials)
-                    if MC_total_reward > best_reward:
-                        best_reward = MC_total_reward
-                        self.save()
                     V0 = self.V_initial_state(self.monitoring_nb_trials)
                     MC_avg_total_rewards.append(MC_total_reward)
                     MC_avg_discounted_rewards.append(MC_discounted_reward)
@@ -252,9 +252,8 @@ class DDDQNAgent:
                         f"ep return {episode_cum_reward:4.1f}, MC tot {MC_total_reward:6.2f}, "
                         f"MC disc {MC_discounted_reward:6.2f}, V0 {V0:6.2f}")
                 else:
-                    episode_returns.append(episode_cum_reward)
                     print(f"Episode {episode:2d}, epsilon {epsilon:6.2f}, batch size {len(self.memory):4d}, "
-                        f"ep return {episode_cum_reward:e}")
+                        f"ep return {episode_cum_reward:e}, best_reward {best_reward:e}")
 
                 state, _ = self.env.reset()
                 episode_cum_reward = 0
@@ -267,23 +266,24 @@ class DDDQNAgent:
 
 # setting up configuration
 config = {
-    'hidden_size' : 300,
-    'batch_size'  : 1024,
-    'gradient_steps' : 10,
-    'learning_rate' : 2.5e-3,
+    'hidden_size' : 128,
+    'batch_size'  : 2048 ,
+    'gradient_steps' : 20,
+    'learning_rate' : 5e-3,
     'update_target_freq' : 100,
-    'update_target_tau' : 0.05,
+    'update_target_tau' : 0.005,
     'update_target_strategy' : 'replace',
-    'epsilon_min' : 0.2,
+    'epsilon_min' : 0.1,
     'epsilon_max' : 1,
-    'epsilon_delay_decay' : 200,
-    'epsilon_decay_period'  : 2000,
-    'gamma' : 0.98,
-    'alpha' : 0.5,
+    'epsilon_delay_decay' : 2000,
+    'epsilon_decay_period'  : 10000,
+    'gamma' : 0.99,
     'buffer_size' : int(10e20),
     'monitoring_nb_trials': 0,
 }
 
 # training the DDDQN Agent
 # trained_agent = DDDQNAgent(env, config)
-# trained_agent.train(max_episode=200)
+# trained_agent.train(max_episode=500)
+
+
