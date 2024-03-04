@@ -15,14 +15,14 @@ class DDDQNNet(nn.Module):
         self.linear2 = nn.Linear(hidden_size, hidden_size)
         
         # Third linear layer
-        self.linear3 = nn.Linear(hidden_size, 2 * hidden_size)
+        self.linear3 = nn.Linear(hidden_size, hidden_size)
 
         # Fully connected layers for value stream
-        self.value_fc = nn.Linear(2 * hidden_size, hidden_size)
+        self.value_fc = nn.Linear(hidden_size, hidden_size)
         self.value = nn.Linear(hidden_size, 1)
 
         # Fully connected layers for advantage stream
-        self.advantage_fc = nn.Linear(2 * hidden_size, hidden_size)
+        self.advantage_fc = nn.Linear(hidden_size, hidden_size)
         self.advantage = nn.Linear(hidden_size, action_size)
 
     def forward(self, x):
