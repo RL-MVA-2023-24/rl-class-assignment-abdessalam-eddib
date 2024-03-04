@@ -55,7 +55,7 @@ class ProjectAgent:
 
         # instantiating the newtorks and their state dict
         self.networks = []
-        for i in range(1, 9):
+        for i in range(1, 7):
           network = DDDQNNet(self.n_states, self.n_hidden, self.n_actions)
           network.load_state_dict(torch.load(os.path.join(os.getcwd(),self.model_path + f'{i}.pt'), map_location=torch.device('cpu')))
           network.to(self.device)
