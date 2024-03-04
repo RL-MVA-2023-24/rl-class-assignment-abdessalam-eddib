@@ -24,8 +24,8 @@ env = TimeLimit(
 class ProjectAgent:
 
     def __init__(self):
-        self.model_path = '/models/model.pt'
-        self.payload_path = '/models/payload.binary'
+        self.model_path = './models/model.pt'
+        self.payload_path = './models/payload.binary'
         self.device = 'cpu'
 
     def act(self, observation, use_random = False):
@@ -40,6 +40,7 @@ class ProjectAgent:
         pass
 
     def load(self):
+        print(os.getcwd())
         # loading payload containing infos abt the network architecture
         with open(os.path.join(os.getcwd(),self.payload_path), 'rb') as file:
             payload = pkl.load(file)
