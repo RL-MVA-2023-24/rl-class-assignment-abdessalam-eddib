@@ -40,7 +40,6 @@ class ProjectAgent:
         pass
 
     def load(self):
-        print(os.getcwd())
         # loading payload containing infos abt the network architecture
         with open(os.path.join(os.getcwd(),self.payload_path), 'rb') as file:
             payload = pkl.load(file)
