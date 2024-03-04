@@ -8,6 +8,7 @@ from copy import deepcopy
 import numpy as np
 import pickle as pkl
 import torch
+import os
 
 env = TimeLimit(
     env=HIVPatient(domain_randomization=False, logscale=False), max_episode_steps=200
