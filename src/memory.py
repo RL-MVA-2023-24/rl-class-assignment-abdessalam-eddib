@@ -18,3 +18,15 @@ class ReplayBuffer:
         return list(map(lambda x:torch.Tensor(np.array(x)).to(self.device), list(zip(*batch))))
     def __len__(self):
         return len(self.data)
+
+
+def fill_buffer(env, agent, buffer_size):
+    state, _ = env.reset()
+    for _ in range(buffer_size):
+        action = agent.greedy_action(state)
+        next_state, reward, done, trunc, _ = env.step(action)
+        agent.memory.append(state, action, reward, next_state, done)
+        if done or trunc:
+            state, _ = env.reset()
+        else:
+            state = next_state
